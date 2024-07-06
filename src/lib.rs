@@ -1,6 +1,3 @@
-// inspired from: https://github.com/garydwatson/mailbox_processor/blob/master/src/lib.rs
-
-
 use std::future::Future;
 
 use async_std::channel::*;
@@ -31,7 +28,7 @@ impl<TMessage, THandle> MailBox<TMessage, THandle> {
         self.sender.send_blocking(msg).unwrap();
     }
 
-    pub async fn ask<TResult: core::marker::Send + 'static>(&self, cb: fn(ReplyChannel<TResult>) -> TMessage) -> TResult{
+    pub async fn ask<TResult>(&self, cb: fn(ReplyChannel<TResult>) -> TMessage) -> TResult{
 
         let (s,r) = bounded(1);
 
