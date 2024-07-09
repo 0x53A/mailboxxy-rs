@@ -85,5 +85,5 @@ dual licensed under MIT and CC0 (public domain)
 
 As mentioned at the top, this is heavily inspired by the F# MailboxProcess (which in turn was apparently inspired by Erlang).
 
-Before implementing this myself, I searched for an existing micro actor framework amd found [a different MailboxProcessor port](https://github.com/garydwatson/mailbox_processor) by Gary Watson. The implementation by Gary Watson differes from the F# implementation (and mine) in that there's only one possible return value *per actor*, not per message case. It doesn't seem to have ported the concept of the ReplyChannel.
+Before implementing this myself, I searched for an existing micro actor framework and found [a different MailboxProcessor port](https://github.com/garydwatson/mailbox_processor) by Gary Watson. The implementation by Gary Watson differes from the F# implementation (and mine) in that there's only one possible return value *per actor*, not per message case. It doesn't seem to have ported the concept of the ReplyChannel.
 
