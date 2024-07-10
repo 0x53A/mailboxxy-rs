@@ -79,7 +79,7 @@ _(please note that this code is simplified and omits some parameters for brevity
 
 ## License
 
-dual licensed under MIT and CC0 (public domain)
+0BSD
 
 ## References
 
