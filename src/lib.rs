@@ -58,8 +58,7 @@ pub enum MailboxBounds {
 pub fn start_mailbox<TMessage, F, Fut, THandle>(bounds: MailboxBounds, f: F, spawn: fn(Fut) -> THandle) -> MailBox<TMessage, THandle> 
 where
     F : FnOnce(MailboxContext<TMessage>) -> Fut,
-    Fut : Future<Output = ()>,
-    THandle : Future<Output = ()>
+    Fut : Future<Output = ()>
 {
     let (s,r) = match bounds {
         MailboxBounds::Unbounded => unbounded(),
@@ -114,8 +113,32 @@ async fn test_async() {
     assert_eq!(val, 2);
 }
 
+#[cfg(test)]
+async fn test_thread() {
+    let mb = start_mailbox(MailboxBounds::Unbounded, mailbox_fn, |fut| {
+        std::thread::spawn(move || {
+            smol::block_on(fut) // Run the future inside the thread
+        })
+    });
+
+    mb.post(TestMsg::Increment);
+    mb.post(TestMsg::Increment);
+    mb.post(TestMsg::Increment);
+    let val = mb.ask(|rc| TestMsg::GetValue(rc)).await;
+    assert_eq!(val, 3);
+
+    mb.post(TestMsg::Decrement);
+    let val = mb.ask(|rc| TestMsg::GetValue(rc)).await;
+    assert_eq!(val, 2);
+}
+
 
 #[test]
-fn test() {
+fn run_test_async() {
     smol::block_on(test_async());
+}
+
+#[test]
+fn run_test_thread() {
+    smol::block_on(test_thread());
 }
