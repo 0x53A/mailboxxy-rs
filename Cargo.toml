@@ -1,6 +1,6 @@
 [package]
 name = "mailboxxy"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "simple micro actor library for rust"
 repository = "https://github.com/0x53A/mailboxxy-rs"
