@@ -1,5 +1,5 @@
 pub struct ReplyChannel<T> {
-    s: async_std::channel::Sender<T>,
+    s: async_channel::Sender<T>,
 }
 
 impl<T> ReplyChannel<T> {
@@ -10,7 +10,7 @@ impl<T> ReplyChannel<T> {
 }
 
 pub struct MailBox<TMessage, THandle> {
-    sender: async_std::channel::Sender<TMessage>,
+    sender: async_channel::Sender<TMessage>,
     pub handle: THandle,
 }
 
@@ -20,7 +20,7 @@ impl<TMessage, THandle> MailBox<TMessage, THandle> {
     }
 
     pub async fn ask<TResult>(&self, cb: fn(ReplyChannel<TResult>) -> TMessage) -> TResult {
-        let (s, r) = async_std::channel::bounded(1);
+        let (s, r) = async_channel::bounded(1);
 
         let rc = ReplyChannel { s };
         let msg = cb(rc);
@@ -30,7 +30,7 @@ impl<TMessage, THandle> MailBox<TMessage, THandle> {
 }
 
 pub struct MailboxContext<TMessage> {
-    receiver: async_std::channel::Receiver<TMessage>,
+    receiver: async_channel::Receiver<TMessage>,
 }
 
 impl<TMessage> MailboxContext<TMessage> {
@@ -50,7 +50,7 @@ pub enum MailboxBounds {
 /// # use mailboxxy::*;
 /// # enum TestMsg { }
 /// # async fn my_mailbox_fn(ctx: MailboxContext<TestMsg>) { }
-/// start_mailbox_direct(MailboxBounds::Unbounded, |ctx| async_std::task::spawn(my_mailbox_fn(ctx)));
+/// start_mailbox_direct(MailboxBounds::Unbounded, |ctx| smol::spawn(my_mailbox_fn(ctx)));
 /// ```
 pub fn start_mailbox_direct<TMessage, F, THandle>(
     bounds: MailboxBounds,
@@ -60,8 +60,8 @@ where
     F: FnOnce(MailboxContext<TMessage>) -> THandle,
 {
     let (s, r) = match bounds {
-        MailboxBounds::Unbounded => async_std::channel::unbounded(),
-        MailboxBounds::Bounded(n) => async_std::channel::bounded(n),
+        MailboxBounds::Unbounded => async_channel::unbounded(),
+        MailboxBounds::Bounded(n) => async_channel::bounded(n),
     };
 
     let ctx = MailboxContext { receiver: r };
@@ -96,7 +96,7 @@ where
     start_mailbox_direct(bounds, |ctx| {
         std::thread::spawn(move || {
             let fut = f(ctx);
-            async_std::task::block_on(fut)
+            smol::block_on(fut)
         })
     })
 }
@@ -104,13 +104,13 @@ where
 pub fn start_mailbox_as_task<TMessage, F, Fut>(
     bounds: MailboxBounds,
     f: F,
-) -> MailBox<TMessage, async_std::task::JoinHandle<()>>
+) -> MailBox<TMessage, smol::Task<()>>
 where
     F: std::marker::Send + 'static + FnOnce(MailboxContext<TMessage>) -> Fut,
     Fut: std::future::Future<Output = ()> + std::marker::Send + 'static,
     TMessage: std::marker::Send + 'static,
 {
-    start_mailbox_direct(bounds, |ctx| async_std::task::spawn(f(ctx)))
+    start_mailbox_direct(bounds, |ctx| smol::spawn(f(ctx)))
 }
 
 // ------------------------------------------------------------------------
@@ -153,7 +153,7 @@ async fn test_mb<T>(mb: &MailBox<TestMsg, T>) {
 
 #[cfg(test)]
 async fn test_async() {
-    let mb = start_mailbox(MailboxBounds::Unbounded, mailbox_fn, async_std::task::spawn);
+    let mb = start_mailbox(MailboxBounds::Unbounded, mailbox_fn, smol::spawn);
     test_mb(&mb).await;
 }
 
@@ -187,7 +187,7 @@ mod tests {
     use std::collections::HashMap;
 
     trait TTest {
-        fn test(&self) -> i32;
+        fn _test(&self) -> i32;
     }
 
     async fn mailbox_fn(ctx: MailboxContext<TestMsg>) {
@@ -209,7 +209,6 @@ mod tests {
         }
     }
 
-    #[cfg(test)]
     async fn test_thread() {
         let mb = start_mailbox_on_thread(MailboxBounds::Unbounded, mailbox_fn);
         test_mb(&mb).await;
